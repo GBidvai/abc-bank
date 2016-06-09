@@ -40,35 +40,51 @@ public class Customer {
         double total = 0.0;
         for (Account a : accounts) {
             statement += "\n" + statementForAccount(a) + "\n";
-            total += a.sumTransactions();
+            total += a.getAccountBalance();
         }
         statement += "\nTotal In All Accounts " + toDollars(total);
         return statement;
     }
 
-    private String statementForAccount(Account a) {
-        String s = "";
 
-       //Translate to pretty account type
-        switch(a.getAccountType()){
-            case Account.CHECKING:
-                s += "Checking Account\n";
-                break;
-            case Account.SAVINGS:
-                s += "Savings Account\n";
-                break;
-            case Account.MAXI_SAVINGS:
-                s += "Maxi Savings Account\n";
-                break;
+    public void transferFunds(long sourceAccountId , long destinationAccountId, double transactionAmount) throws Exception {
+        Account sourceAccount = null;
+        Account destinationAccount = null;
+        for(Account account : accounts){
+            if(account.getAccountId() == sourceAccountId){
+                sourceAccount = account;
+            }
+            if(account.getAccountId() == destinationAccountId){
+                destinationAccount = account;
+            }
+
+            if(sourceAccount != null && destinationAccount != null){
+                break; // We found both source and destination accounts , no need for further iterations
+            }
+
         }
+        if(sourceAccount == null || destinationAccount == null){
+            throw new Exception("Please enter valid source and destination account numbers");
+        }
+        if(transactionAmount > sourceAccount.getAccountBalance()){
+            throw new Exception("Insufficient funds in account");
+        }
+
+        sourceAccount.withdraw(transactionAmount);
+        destinationAccount.deposit(transactionAmount);
+    }
+
+    private String statementForAccount(Account a) {
+
+        String s  = a.getAccountType().name();
 
         //Now total up all the transactions
         double total = 0.0;
-        for (Transaction t : a.transactions) {
-            s += "  " + (t.amount < 0 ? "withdrawal" : "deposit") + " " + toDollars(t.amount) + "\n";
-            total += t.amount;
+        for (Transaction t : a.getTransactions()) {
+            s += "  " + (t.transactionAmount < 0 ? "withdrawal" : "deposit") + " " + toDollars(t.transactionAmount) + "\n";
+            //total += t.transactionAmount;
         }
-        s += "Total " + toDollars(total);
+        s += "Total " + toDollars(a.getAccountBalance());
         return s;
     }
 

@@ -1,73 +1,109 @@
 package com.abc;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class Account {
 
-    public static final int CHECKING = 0;
-    public static final int SAVINGS = 1;
-    public static final int MAXI_SAVINGS = 2;
+    private final AccountType accountType;
+    private List<Transaction> transactions;
+    private double accountBalance;
+    private long accountId ;
 
-    private final int accountType;
-    public List<Transaction> transactions;
 
-    public Account(int accountType) {
+    public Account(AccountType accountType) {
         this.accountType = accountType;
         this.transactions = new ArrayList<Transaction>();
     }
 
     public void deposit(double amount) {
+        deposit(amount, DateProvider.getInstance().now());
+    }
+
+    public void deposit(double amount, Date transactionDate) {
         if (amount <= 0) {
-            throw new IllegalArgumentException("amount must be greater than zero");
+            throw new IllegalArgumentException("transactionAmount must be greater than zero");
         } else {
-            transactions.add(new Transaction(amount));
+            accountBalance = accountBalance + amount;
+            transactions.add(new Transaction(amount, transactionDate));
         }
     }
 
-public void withdraw(double amount) {
-    if (amount <= 0) {
-        throw new IllegalArgumentException("amount must be greater than zero");
-    } else {
-        transactions.add(new Transaction(-amount));
+    public void withdraw(double amount) {
+        withdraw(amount, DateProvider.getInstance().now());
     }
-}
+
+    public void withdraw(double amount, Date transactionDate) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("transactionAmount must be greater than zero");
+        } else {
+            accountBalance = accountBalance - amount;
+            transactions.add(new Transaction(-amount, transactionDate));
+        }
+    }
 
     public double interestEarned() {
-        double amount = sumTransactions();
+
         switch(accountType){
             case SAVINGS:
-                if (amount <= 1000)
-                    return amount * 0.001;
+                if (accountBalance <= 1000)
+                    return accountBalance * 0.001;
                 else
-                    return 1 + (amount-1000) * 0.002;
+                    return 1 + (accountBalance-1000) * 0.002;
 //            case SUPER_SAVINGS:
-//                if (amount <= 4000)
+//                if (transactionAmount <= 4000)
 //                    return 20;
             case MAXI_SAVINGS:
-                if (amount <= 1000)
-                    return amount * 0.02;
-                if (amount <= 2000)
-                    return 20 + (amount-1000) * 0.05;
-                return 70 + (amount-2000) * 0.1;
+
+                if(hasWithdrawalInPastTenDays()){
+                    return accountBalance * 0.001;
+                } else {
+                    return accountBalance * 0.05;
+                }
             default:
-                return amount * 0.001;
+                return accountBalance * 0.001;
         }
     }
 
-    public double sumTransactions() {
-       return checkIfTransactionsExist(true);
-    }
-
-    private double checkIfTransactionsExist(boolean checkAll) {
-        double amount = 0.0;
-        for (Transaction t: transactions)
-            amount += t.amount;
-        return amount;
-    }
-
-    public int getAccountType() {
+    public AccountType getAccountType() {
         return accountType;
     }
 
+    public List<Transaction> getTransactions() {
+        return transactions;
+    }
+
+    public double getAccountBalance() {
+        return accountBalance;
+    }
+
+    public void setAccountBalance(double accountBalance) {
+        this.accountBalance = accountBalance;
+    }
+
+    public boolean hasWithdrawalInPastTenDays(){
+        LocalDateTime currentldt = LocalDateTime.ofInstant(new Date().toInstant(), ZoneId.systemDefault());
+        LocalDateTime transactionldt;
+        for(Transaction transaction: transactions){
+            if(transaction.transactionAmount < 0) {
+                transactionldt = LocalDateTime.ofInstant(transaction.getTransactionDate().toInstant(), ZoneId.systemDefault());
+                if (transactionldt.isAfter(currentldt.minusDays(10))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public long getAccountId() {
+        return accountId;
+    }
+
+    public void setAccountId(long accountId) {
+        this.accountId = accountId;
+    }
 }
